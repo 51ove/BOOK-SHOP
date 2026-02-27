@@ -11,10 +11,16 @@ const allBooks = (req,res)=>{
     // limit * (currentPage - 1)
     let offset = limit * (currentPage - 1);
 
-    let sql = 'SELECT * FROM books';
+    let sql = `SELECT * , 
+	(SELECT count(*) FROM likes WHERE liked_book_id=books.id) AS likes 
+    FROM books`;
+    // 좋아요 수 포함한 전체 도서 조회
+    // 조건(카테고리, 신간여부)에 따라 sql 덧붙여서 사용
+
     let values = [];
+
     if(category_id && news) {
-        sql += ' WHERE category_id = ? AND pub_date BETWEEN DATE_SUB(NOW(),INTERVAL 1 MONTH) AND NOW()';
+        sql += ' WHERE category_id = ? AND pub_date BETWEEN DATE_SUB(NOW(),INTERVAL 1 MONTH) AND NOW() ';
         values = [category_id];
     }
     else if(category_id) {
@@ -42,12 +48,23 @@ const allBooks = (req,res)=>{
         })
 };
 
+// 개별 도서 조회
 const bookDetail = (req,res)=>{
-    let {id} = req.params;
-    let sql = `SELECT * FROM BookShop.books LEFT JOIN category 
-                ON books.category_id = category.id  WHERE books.id = ?`;
+    let {user_id} = req.query; // req.body로 안받아져서 임시로 쿼리
+    let book_id = req.params.id;
 
-    conn.query(sql,id,(err, results)=>{
+    let sql = 
+    `SELECT *,
+	    (SELECT count(*) FROM likes WHERE books.id = liked_book_id) AS likes,
+	    (SELECT EXISTS(SELECT * FROM likes WHERE user_id = ? AND liked_book_id = ?)) AS liked
+    FROM BookShop.books
+    LEFT JOIN category 
+	ON books.category_id = category.category_id  
+    WHERE books.id=?`;
+
+    let values = [user_id, book_id, book_id]
+
+    conn.query(sql,values,(err, results)=>{
         if (err) {
         console.log(err);
         return res.status(StatusCodes.BAD_REQUEST).end();
