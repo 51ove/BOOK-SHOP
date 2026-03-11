@@ -50,9 +50,10 @@ const login = (req,res)=>{
                 if (loginUser && loginUser.password == hashPassword) {
                     // token 발급
                     const token = jwt.sign({
+                        id : loginUser.id,
                         email : loginUser.email,
                     }, process.env.PRIVATE_KEY,{
-                        expiresIn : '30m',
+                        expiresIn : '10m',
                         issuer : "yeeun"
                     });
 
